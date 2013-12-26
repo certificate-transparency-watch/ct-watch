@@ -3,5 +3,14 @@
   %head
     %title Certificate Transparency Watch
   %body
-    %h1
-      It works: #{greeting}
+    %h1 Certificate Transparency Watch
+
+    %h2 Bad
+    %ul
+      - bad.sort { |a,b| a['timestamp'] <=> b['timestamp'] }.reverse_each do |sth|
+        %li #{sth['timestamp']} #{sth['roothash']}
+
+    %h2 Good
+    %ul
+      - good.sort { |a,b| a['timestamp'] <=> b['timestamp'] }.reverse_each do |sth|
+        %li #{sth['timestamp']} #{sth['roothash']}

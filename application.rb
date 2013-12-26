@@ -2,6 +2,9 @@ require 'sinatra'
 
 class CtWatch < Sinatra::Base
     get '/' do
-        haml :index, :locals => { :greeting => 'hola' }
+        conn = PG.connect :dbname => 'ct-watch'
+        results = conn.exec("SELECT * FROM sth")
+        good, bad = results.partition { |row| row.values_at('verified') }
+        haml :index, :locals => { :good => good, :bad => bad }
     end
 end
