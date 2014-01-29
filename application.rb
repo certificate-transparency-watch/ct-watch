@@ -14,4 +14,10 @@ class CtWatch < Sinatra::Base
         good, bad = results.partition { |row| row.values_at('verified')[0] == 't' }
         json :good => good, :bad => bad
     end
+
+    get '/domain/:domain' do
+        conn = PG.connect :hostaddr => '172.17.42.1', :user => 'docker', :password => 'docker', :dbname => 'ct-watch'
+        results = conn.exec_params("SELECT log_server_id, escape(leaf_input, 'base64'), escape(extra_data, 'base64') FROM log_entry WHERE reverse(domain) like '%$1'", params[:domain].reverse)
+        json :results => results
+    end
 end
