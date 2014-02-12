@@ -20,7 +20,7 @@ class CtWatch < Sinatra::Base
     get '/domain/:domain' do
         halt 404 if not PublicSuffix.valid?(params[:domain])
         conn = PG.connect :hostaddr => '172.17.42.1', :user => 'docker', :password => 'docker', :dbname => 'ct-watch'
-        results = conn.exec_params("SELECT log_server.prefix AS logServerPrefix, idx, domain, encode(certificate, 'base64') as certificate FROM log_entry JOIN log_server ON log_server.id = log_server_id JOIN cert ON log_entry.cert_md5 = cert.md5 WHERE reverse(domain) = $1 OR reverse(domain) like ($1 || '.%')", [params[:domain].reverse])
+        results = conn.exec_params("SELECT log_server.prefix, idx, domain, encode(certificate, 'base64') as certificate FROM log_entry JOIN log_server ON log_server.id = log_server_id JOIN cert ON log_entry.cert_md5 = cert.md5 WHERE reverse(domain) = $1 OR reverse(domain) like ($1 || '.%')", [params[:domain].reverse])
 
         search = params[:domain]
 
@@ -33,7 +33,7 @@ class CtWatch < Sinatra::Base
             results.each do |cert|
                 maker.items.new_item do |item|
                     item.title = cert['domain']
-                    item.link = "https://#{cert['logServerPrefix']}/ct/v1/get-entries?start=#{cert['idx']}&end=#{cert['idx']}"
+                    item.link = "https://#{cert['prefix']}/ct/v1/get-entries?start=#{cert['idx']}&end=#{cert['idx']}"
                     item.content.content = "-----BEGIN CERTIFICATE-----\n" + cert['certificate'] + "\n-----END CERTIFICATE-----"
                     item.updated = Time.now.to_s
                 end
