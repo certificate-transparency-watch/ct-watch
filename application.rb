@@ -52,5 +52,11 @@ class CtWatch < Sinatra::Base
 
         unprocessed_entries = conn.exec("select count(*) from log_entry where domain is null").values[0][0].to_i
         halt 500, "There are #{unprocessed_entries} unprocessed log entries." if unprocessed_entries > 100000
+
+        sth_treesizes = conn.exec("select log_server_id, max(treesize) from sth group by log_server_id order by log_server_id").values
+        log_entries_indexes = conn.exec("select log_server_id, max(idx) from log_entry group by log_server_id order by log_server_id").values
+        halt 500, 'Some log servers have no log entries' if not sth_treesizes.size == log_entries_indexes.size
+        half 500, 'Log entries indexes and STH tree size have drifted, for at least one log server.' if sth_treesizes.zip(log_entries_indexes).all? { |a| (a[0][1].to_i - a[1][1].to_i).abs < 20000 }
+
     end
 end
