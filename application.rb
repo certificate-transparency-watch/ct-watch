@@ -42,4 +42,17 @@ class CtWatch < Sinatra::Base
 
         rss.to_s
     end
+
+    get '/health' do
+        conn = PG.connect :hostaddr => '172.17.42.1', :user => 'docker', :password => 'docker', :dbname => 'ct-watch'
+
+        results = conn.exec("SELECT max(timestamp) FROM sth GROUP BY log_server_id").values
+        recent_sth = results.size >= 2 && results.all? { |i| Time.at(i[0].to_i/1000) > Time.now - (3*60*60) }
+
+        if recent_sth
+            return "Ok."
+        else
+            halt 500, 'A log server has no STH in the past 3 hours.'
+        end
+    end
 end
