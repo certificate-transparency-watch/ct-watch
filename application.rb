@@ -48,11 +48,9 @@ class CtWatch < Sinatra::Base
 
         results = conn.exec("SELECT max(timestamp) FROM sth GROUP BY log_server_id").values
         recent_sth = results.size >= 2 && results.all? { |i| Time.at(i[0].to_i/1000) > Time.now - (3*60*60) }
+        halt 500, 'A log server has no STH in the past 3 hours.' if not recent_sth
 
-        if recent_sth
-            return "Ok."
-        else
-            halt 500, 'A log server has no STH in the past 3 hours.'
-        end
+        unprocessed_entries = conn.exec("select count(*) from log_entry where domain is null").values[0][0].to_i
+        halt 500, "There are #{unprocessed_entries} unprocessed log entries." if unprocessed_entries > 100000
     end
 end
