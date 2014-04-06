@@ -59,7 +59,7 @@ class CtWatch < Sinatra::Base
         halt 500, 'Log entries indexes and STH tree size have drifted, for at least one log server.' if sth_treesizes.zip(log_entries_indexes).all? { |a| (a[0][1].to_i - a[1][1].to_i).abs < 20000 }
 
         unverified_sths = conn.exec("select count(*) from sth where verified = false group by log_server_id").values
-        halt 500, 'A log server has more than one unverified STH', if unverified_sths.all? { |i| i[0].to_i > 1 }
+        halt 500, 'A log server has more than one unverified STH' if unverified_sths.all? { |i| i[0].to_i > 1 }
 
     end
 end
