@@ -44,22 +44,45 @@ class CtWatch < Sinatra::Base
     end
 
     get '/health' do
-        conn = PG.connect :hostaddr => '172.17.42.1', :user => 'docker', :password => 'docker', :dbname => 'ct-watch'
-
-        results = conn.exec("SELECT max(timestamp) FROM sth GROUP BY log_server_id").values
-        recent_sth = results.size >= 2 && results.all? { |i| Time.at(i[0].to_i/1000) > Time.now - (3*60*60) }
-        halt 500, 'A log server has no STH in the past 3 hours.' if not recent_sth
-
-        unprocessed_entries = conn.exec("select count(*) from log_entry where domain is null").values[0][0].to_i
-        halt 500, "There are #{unprocessed_entries} unprocessed log entries." if unprocessed_entries > 100000
-
-        sth_treesizes = conn.exec("select log_server_id, max(treesize) from sth group by log_server_id order by log_server_id").values
-        log_entries_indexes = conn.exec("select log_server_id, max(idx) from log_entry group by log_server_id order by log_server_id").values
-        halt 500, 'Some log servers have no log entries' if not sth_treesizes.size == log_entries_indexes.size
-        halt 500, 'Log entries indexes and STH tree size have drifted, for at least one log server.' if sth_treesizes.zip(log_entries_indexes).all? { |a| (a[0][1].to_i - a[1][1].to_i).abs < 20000 }
-
-        unverified_sths = conn.exec("select count(*) from sth where verified = false group by log_server_id").values
-        halt 500, 'A log server has more than one unverified STH' if unverified_sths.any? { |i| i[0].to_i > 1 }
-
+        if @health[:messages].empty? && @health[:lastupdate] > Time.now - (1*60)
+            return @health
+        else
+            halt 500, @health
     end
+
+    @health = {
+        :lastupdate => Time.now,
+        :messages => ["This message should only be returned when there have been no checks."]
+    }
+
+    Thread.new do
+        while true do
+            messages = []
+
+            conn = PG.connect :hostaddr => '172.17.42.1', :user => 'docker', :password => 'docker', :dbname => 'ct-watch'
+
+            results = conn.exec("SELECT max(timestamp) FROM sth GROUP BY log_server_id").values
+            recent_sth = results.size >= 2 && results.all? { |i| Time.at(i[0].to_i/1000) > Time.now - (3*60*60) }
+            messages << 'A log server has no STH in the past 3 hours.' if not recent_sth
+
+            unprocessed_entries = conn.exec("select count(*) from log_entry where domain is null").values[0][0].to_i
+            messages << "There are #{unprocessed_entries} unprocessed log entries." if unprocessed_entries > 100000
+
+            sth_treesizes = conn.exec("select log_server_id, max(treesize) from sth group by log_server_id order by log_server_id").values
+            log_entries_indexes = conn.exec("select log_server_id, max(idx) from log_entry group by log_server_id order by log_server_id").values
+            messages << 'Some log servers have no log entries' if not sth_treesizes.size == log_entries_indexes.size
+            messages << 'Log entries indexes and STH tree size have drifted, for at least one log server.' if sth_treesizes.zip(log_entries_indexes).all? { |a| (a[0][1].to_i - a[1][1].to_i).abs < 20000 }
+
+            unverified_sths = conn.exec("select count(*) from sth where verified = false group by log_server_id").values
+            messages << 'A log server has more than one unverified STH' if unverified_sths.any? { |i| i[0].to_i > 1 }
+
+            @health = {
+                :lastupdate => Time.now,
+                :messages => messages
+            }
+
+            sleep 30
+        end
+    end
+end
 end
