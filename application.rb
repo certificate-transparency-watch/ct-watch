@@ -61,5 +61,7 @@ class CtWatch < Sinatra::Base
         unverified_sths = conn.exec("select count(*) from sth where verified = false group by log_server_id").values
         halt 500, 'A log server has more than one unverified STH' if unverified_sths.any? { |i| i[0].to_i > 1 }
 
+        return "Ok."
+
     end
 end
