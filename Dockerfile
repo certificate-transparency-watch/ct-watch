@@ -10,4 +10,4 @@ RUN \
     . /.profile ;\
     bundle install --deployment
 
-CMD . /.profile && bundle exec thin start --threaded
+CMD . /.profile && bundle exec thin start --threaded --port 80
