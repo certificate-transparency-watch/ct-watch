@@ -10,4 +10,4 @@ RUN \
     . /.profile ;\
     bundle install --deployment
 
-CMD . /.profile && bundle exec rackup -p 80
+CMD . /.profile && bundle exec thin start --threaded
