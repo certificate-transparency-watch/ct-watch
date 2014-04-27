@@ -67,6 +67,40 @@ class CtWatch < Sinatra::Base
         unverified_sths = conn.exec("select count(*) from sth where verified = false group by log_server_id").values
         halt 500, 'A log server has more than one unverified STH' if unverified_sths.any? { |i| i[0].to_i > 1 }
 
+        # These are cases in which I have no STH for >3 hours, for the Google log servers.
+        # These cases are either due to Google not meeting 3 hour MMD (which they haven't agreed to)
+        # or, more likely, my STH poller not being up at those times...
+        log_servers = {
+            1 => [
+                "2013-10-08 05:05:03+00",
+                "2013-10-08 12:22:44+00",
+                "2013-10-10 11:43:39+00",
+                "2013-10-12 16:03:05+00",
+                "2013-10-13 00:40:27+00",
+                "2013-10-14 19:31:59+00",
+                "2013-11-16 12:01:08+00",
+                "2013-12-11 20:59:06+00",
+                "2014-01-29 21:45:41+00",
+                "2014-02-03 19:03:01+00",
+                "2014-02-05 07:02:09+00",
+                "2014-02-10 22:49:58+00",
+                "2014-04-05 04:39:32+00",
+                "2014-04-05 09:03:33+00"
+            ],
+            2 => [
+                "2014-02-03 18:30:56+00",
+                "2014-02-05 07:29:59+00",
+                "2014-04-19 12:57:56+00"
+            ]
+        }
+
+        log_servers.each do |log_server_id, expected_mmd_failures|
+            mmd_failures = conn.exec("select to_timestamp as date from (select treesize, to_timestamp(timestamp/1000), (timestamp-lag(timestamp,1) OVER (ORDER BY timestamp))/(1000*60) AS gap FROM sth WHERE log_server_id = #{log_server_id}) AS t where t.gap > 3*60;").values
+            require 'pry'
+            binding.pry
+            halt 500, "Log server #{log_server_id} has an unexpected MMD failure" if not (Set.new (mmd_failures.map { |i| i[0] })).subset?(Set.new expected_mmd_failures)
+        end
+
         return "Ok."
 
     end
