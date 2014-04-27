@@ -96,8 +96,6 @@ class CtWatch < Sinatra::Base
 
         log_servers.each do |log_server_id, expected_mmd_failures|
             mmd_failures = conn.exec("select to_timestamp as date from (select treesize, to_timestamp(timestamp/1000), (timestamp-lag(timestamp,1) OVER (ORDER BY timestamp))/(1000*60) AS gap FROM sth WHERE log_server_id = #{log_server_id}) AS t where t.gap > 3*60;").values
-            require 'pry'
-            binding.pry
             halt 500, "Log server #{log_server_id} has an unexpected MMD failure" if not (Set.new (mmd_failures.map { |i| i[0] })).subset?(Set.new expected_mmd_failures)
         end
 
