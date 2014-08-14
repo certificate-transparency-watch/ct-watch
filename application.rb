@@ -96,7 +96,8 @@ class CtWatch < Sinatra::Base
                 "2014-02-05 07:29:59+00",
                 "2014-04-19 12:57:56+00",
                 "2014-05-01 05:38:49+00"
-            ]
+            ],
+            3 => []
         }
 
         log_servers.each do |log_server_id, expected_mmd_failures|
