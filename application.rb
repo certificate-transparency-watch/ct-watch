@@ -62,7 +62,7 @@ class CtWatch < Sinatra::Base
                                      )
                                   select log_server_id, (select max(idx) from log_entry where log_server_id=t.log_server_id) from t where t.log_server_id is not null order by log_server_id;").values
         halt 500, 'Some log servers have no log entries' if not sth_treesizes.size == log_entries_indexes.size
-        halt 500, 'Log entries indexes and STH tree size have drifted, for at least one log server.' if sth_treesizes.zip(log_entries_indexes).any? { |a| (a[0][1].to_i - a[1][1].to_i).abs > 5000 }
+        halt 500, 'Log entries indexes and STH tree size have drifted, for at least one log server.' if sth_treesizes.zip(log_entries_indexes).any? { |a| (a[0][1].to_i - a[1][1].to_i).abs > 15000 }
 
         unverified_sths = conn.exec("select count(*) from sth where verified = false group by log_server_id").values
         halt 500, 'A log server has more than one unverified STH' if unverified_sths.any? { |i| i[0].to_i > 1 }
