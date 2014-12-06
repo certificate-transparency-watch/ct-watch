@@ -1,7 +1,0 @@
-#!/bin/sh
-set -eu
-
-docker build -t=ct-watch-http .
-docker stop service-ct-watch-http || true
-docker rm service-ct-watch-http || true
-docker run -d -p 8080:80 --name=service-ct-watch-http ct-watch-http

@@ -1,6 +1,0 @@
-#!/bin/sh
-set -eu
-
-. /.profile
-
-bundle exec thin start --threaded --port 80
